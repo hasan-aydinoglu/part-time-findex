@@ -1,286 +1,337 @@
-// app/(tabs)/index.tsx
-import * as React from "react";
-import { useMemo, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
 import {
-  Appbar,
-  Button,
-  Card,
-  Chip,
-  Divider,
-  Provider as PaperProvider,
-  Switch,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
   Text,
   TextInput,
-} from "react-native-paper";
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type Job = {
-  id: number;
+  id: string;
   title: string;
   company: string;
-  city: string;
-  remote: boolean;
-  category: string;
-  hourly: number;
-  postedAt: string;
-  shifts: string[];
-  description: string;
+  logo?: string;        
+  location: string;
+  type: "Part-time" | "Remote" | "Hybrid" | "On-site";
+  salary?: string;
+  postedAt: string;     
+  tags: string[];
+  desc: string;
 };
 
-const SEED_JOBS: Job[] = [
+const MOCK_JOBS: Job[] = [
   {
-    id: 1,
-    title: "Barista (Hafta Sonu)",
-    company: "Bean&Co.",
-    city: "İstanbul",
-    remote: false,
-    category: "Yiyecek/İçecek",
-    hourly: 220,
-    postedAt: new Date().toISOString(),
-    shifts: ["Cmt", "Paz"],
-    description: "Üçüncü dalga kahvecide hafta sonu vardiyası.",
+    id: "1",
+    title: "Barista",
+    company: "Moonbeam Coffee",
+    logo:
+      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=256&q=80&auto=format&fit=crop",
+    location: "Kadıköy, İstanbul",
+    type: "On-site",
+    salary: "₺220 - ₺260 /saat",
+    postedAt: "2s önce",
+    tags: ["Hafta sonu", "Öğrenci", "Esnek"],
+    desc: "Yoğun saatlerde baristalık, kasa ve temel hazırlık işleri.",
   },
   {
-    id: 2,
-    title: "Depo Görevlisi (Akşam)",
-    company: "HızlıLojistik",
-    city: "Ankara",
-    remote: false,
-    category: "Lojistik",
-    hourly: 200,
-    postedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    shifts: ["Hafta içi", "Akşam"],
-    description: "Sipariş toplama ve paketleme.",
-  },
-  {
-    id: 3,
-    title: "Sosyal Medya Asistanı (Remote)",
-    company: "Glow Agency",
-    city: "İzmir",
-    remote: true,
-    category: "Dijital Pazarlama",
-    hourly: 260,
-    postedAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-    shifts: ["Esnek"],
-    description: "Kısa video kurgu ve metin.",
-  },
-  {
-    id: 4,
-    title: "Satış Destek (Öğrenci Uygun)",
-    company: "TeknoShop",
-    city: "Bursa",
-    remote: false,
-    category: "Perakende",
-    hourly: 210,
-    postedAt: new Date(Date.now() - 86400000 * 6).toISOString(),
-    shifts: ["Hafta içi", "Gündüz"],
-    description: "Mağazada müşteri karşılama, stok.",
-  },
-  {
-    id: 5,
-    title: "Kurye (Saatlik)",
+    id: "2",
+    title: "Kurye (E-Scooter)",
     company: "HızlıGetir",
-    city: "İstanbul",
-    remote: false,
-    category: "Lojistik",
-    hourly: 300,
-    postedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-    shifts: ["Esnek"],
-    description: "Motosiklet ile bölge içi teslimat.",
+    logo:
+      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=256&q=80&auto=format&fit=crop",
+    location: "Üsküdar, İstanbul",
+    type: "Hybrid",
+    salary: "₺350 - ₺500 /gün",
+    postedAt: "Dün",
+    tags: ["Ehliyet Yok", "Gündüz", "Prim"],
+    desc: "Kısa mesafe e-scooter ile teslimatlar. Ekipman sağlanır.",
+  },
+  {
+    id: "3",
+    title: "Sosyal Medya Asistanı",
+    company: "Nova Digital",
+    logo:
+      "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?w=256&q=80&auto=format&fit=crop",
+    location: "Remote",
+    type: "Remote",
+    salary: "₺200 - ₺240 /saat",
+    postedAt: "3g önce",
+    tags: ["Evden", "Video", "Canva"],
+    desc: "Reels/TikTok kurguları, basit görsel hazırlama, metin yazımı.",
+  },
+  {
+    id: "4",
+    title: "Kasiyer (Akşam)",
+    company: "Mini Market",
+    logo:
+      "https://images.unsplash.com/photo-1556745753-b2904692b3cd?w=256&q=80&auto=format&fit=crop",
+    location: "Beşiktaş, İstanbul",
+    type: "On-site",
+    salary: "₺230 /saat",
+    postedAt: "1g önce",
+    tags: ["Akşam", "Hafta içi", "Öğrenci"],
+    desc: "Kasada müşteri karşılaması, reyon düzeni ve stok takibi.",
   },
 ];
 
-const CATEGORIES = ["Tümü", "Yiyecek/İçecek", "Lojistik", "Dijital Pazarlama", "Perakende"];
+const CATEGORIES = ["Hepsi", "On-site", "Remote", "Hybrid", "Part-time"];
 
-const formatTL = (n: number) =>
-  new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(
-    n
+export default function HomeScreen() {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [activeCat, setActiveCat] = useState("Hepsi");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const data = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return MOCK_JOBS.filter((j) => {
+      const byCat = activeCat === "Hepsi" ? true : j.type === (activeCat as Job["type"]);
+      const byQuery =
+        !q ||
+        j.title.toLowerCase().includes(q) ||
+        j.company.toLowerCase().includes(q) ||
+        j.location.toLowerCase().includes(q) ||
+        j.tags.some((t) => t.toLowerCase().includes(q));
+      return byCat && byQuery;
+    });
+  }, [query, activeCat]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // burada API yenilemesi yapılabilir
+    setTimeout(() => setRefreshing(false), 800);
+  };
+
+  const renderJob = ({ item }: { item: Job }) => (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={styles.card}
+      onPress={() => {
+        // İleride detay sayfasına gidebilirsin: router.push(`/job/${item.id}`)
+      }}
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.logoWrap}>
+          {item.logo ? (
+            <Image source={{ uri: item.logo }} style={styles.logo} />
+          ) : (
+            <Ionicons name="briefcase" size={20} color="#94a3b8" />
+          )}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.jobTitle}>{item.title}</Text>
+          <Text style={styles.company}>{item.company}</Text>
+        </View>
+        {item.salary ? (
+          <View style={styles.badgePay}>
+            <Ionicons name="cash-outline" size={14} color="#065f46" />
+            <Text style={styles.badgePayText}>{item.salary}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.metaRow}>
+        <View style={styles.metaPill}>
+          <Ionicons name="location-outline" size={14} color="#93c5fd" />
+          <Text style={styles.metaText}>{item.location}</Text>
+        </View>
+        <View style={styles.metaPill}>
+          <MaterialCommunityIcons name="briefcase-clock" size={14} color="#fef3c7" />
+          <Text style={styles.metaText}>{item.type}</Text>
+        </View>
+        <View style={styles.metaPill}>
+          <Ionicons name="time-outline" size={14} color="#fca5a5" />
+          <Text style={styles.metaText}>{item.postedAt}</Text>
+        </View>
+      </View>
+
+      <Text numberOfLines={2} style={styles.desc}>
+        {item.desc}
+      </Text>
+
+      <View style={styles.tagRow}>
+        {item.tags.map((t) => (
+          <View key={t} style={styles.tag}>
+            <Text style={styles.tagText}>{t}</Text>
+          </View>
+        ))}
+      </View>
+    </TouchableOpacity>
   );
 
-export default function HomeTab() {
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState("Tümü");
-  const [remoteOnly, setRemoteOnly] = useState(false);
-  const [sort, setSort] = useState<"new" | "pay">("new");
-  const [minPay, setMinPay] = useState("");
-
-  const filtered = useMemo(() => {
-    let list = [...SEED_JOBS];
-    if (q.trim()) {
-      const t = q.toLowerCase();
-      list = list.filter((j) => [j.title, j.company, j.description, j.category].join(" ").toLowerCase().includes(t));
-    }
-    if (cat !== "Tümü") list = list.filter((j) => j.category === cat);
-    if (remoteOnly) list = list.filter((j) => j.remote);
-    const min = Number(minPay) || 0;
-    list = list.filter((j) => j.hourly >= min);
-    if (sort === "new") list.sort((a, b) => +new Date(b.postedAt) - +new Date(a.postedAt));
-    if (sort === "pay") list.sort((a, b) => b.hourly - a.hourly);
-    return list;
-  }, [q, cat, remoteOnly, minPay, sort]);
-
   return (
-    <PaperProvider>
-      <View style={styles.root}>
-        {/* HEADER */}
-        <Appbar.Header mode="center-aligned" style={styles.header}>
-          <Appbar.Content title="Part-Time Finder" subtitle="İlanları keşfet" color="#fff" />
-          <Appbar.Action
-            icon="refresh"
-            color="#fff"
-            onPress={() => {
-              setQ("");
-              setCat("Tümü");
-              setRemoteOnly(false);
-              setMinPay("");
-              setSort("new");
-            }}
-          />
-        </Appbar.Header>
-
-        {/* FILTERS */}
-        <View style={styles.section}>
-          <TextInput
-            mode="outlined"
-            placeholder="Pozisyon, şirket, anahtar kelime"
-            value={q}
-            onChangeText={setQ}
-            left={<TextInput.Icon icon="magnify" />}
-          />
-          <View style={styles.gap8} />
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Kategori:</Text>
-            <View style={styles.chips}>
-              {CATEGORIES.map((c) => (
-                <Chip
-                  key={c}
-                  style={styles.chip}
-                  selected={cat === c}
-                  mode={cat === c ? "flat" : "outlined"}
-                  onPress={() => setCat(c)}
-                >
-                  {c}
-                </Chip>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.gap8} />
-
-          <View style={styles.rowBetween}>
-            <View style={styles.row}>
-              <Text style={styles.label}>Sadece Remote</Text>
-              <View style={{ width: 8 }} />
-              <Switch value={remoteOnly} onValueChange={setRemoteOnly} />
-            </View>
-
-            <View style={styles.row}>
-              <Text style={styles.label}>Min ₺</Text>
-              <View style={{ width: 8 }} />
-              <TextInput
-                mode="outlined"
-                value={minPay}
-                onChangeText={setMinPay}
-                keyboardType="numeric"
-                style={{ width: 100 }}
-              />
-            </View>
-          </View>
-
-          <View style={styles.gap8} />
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Sırala:</Text>
-            <View style={styles.chips}>
-              <Chip
-                style={styles.chip}
-                selected={sort === "new"}
-                mode={sort === "new" ? "flat" : "outlined"}
-                onPress={() => setSort("new")}
-              >
-                En Yeni
-              </Chip>
-              <Chip
-                style={styles.chip}
-                selected={sort === "pay"}
-                mode={sort === "pay" ? "flat" : "outlined"}
-                onPress={() => setSort("pay")}
-              >
-                Ücrete Göre
-              </Chip>
-            </View>
-            <View style={{ flex: 1 }} />
-            <Button
-              mode="outlined"
-              onPress={() => {
-                setQ("");
-                setCat("Tümü");
-                setRemoteOnly(false);
-                setMinPay("");
-                setSort("new");
-              }}
-            >
-              Temizle
-            </Button>
-          </View>
+    <View style={styles.screen}>
+      {/* Üst Başlık + Profil kısayolu */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.hi}>Merhaba 👋</Text>
+          <Text style={styles.subtitle}>Bugün senin için {MOCK_JOBS.length} ilan bulduk</Text>
         </View>
-
-        <Divider />
-
-        {/* LIST */}
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <Card.Title
-                title={item.title}
-                subtitle={`${item.company} • ${item.remote ? "Remote" : item.city} • ${item.shifts.join(", ")}`}
-                titleStyle={{ color: "white" }}
-                subtitleStyle={{ color: "#9ca3af" }}
-              />
-              <Card.Content>
-                <Text style={{ color: "#e5e7eb", marginBottom: 8 }}>{item.description}</Text>
-                <View style={styles.rowBetween}>
-                  <Text style={{ color: "white", fontWeight: "bold" }}>{formatTL(item.hourly)}/saat</Text>
-                  <View style={styles.row}>
-                    <Button mode="outlined" onPress={() => {}}>Kaydet</Button>
-                    <View style={{ width: 8 }} />
-                    <Button mode="contained" onPress={() => alert("Demo: Başvuru gönderildi!")}>
-                      Başvur
-                    </Button>
-                  </View>
-                </View>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                  <Chip mode="outlined">{item.category}</Chip>
-                </View>
-              </Card.Content>
-            </Card>
-          )}
-          ListEmptyComponent={
-            <Text style={{ color: "white", textAlign: "center", marginTop: 24 }}>
-              Kriterlere uygun ilan yok.
-            </Text>
-          }
-        />
+        <TouchableOpacity
+          style={styles.profileBtn}
+          onPress={() => router.push("/profile")}
+        >
+          <Ionicons name="person-circle-outline" size={28} color="#e5e7eb" />
+        </TouchableOpacity>
       </View>
-    </PaperProvider>
+
+      {/* Arama kutusu */}
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={18} color="#94a3b8" />
+        <TextInput
+          placeholder="Pozisyon, şirket, konum ara…"
+          placeholderTextColor="#94a3b8"
+          value={query}
+          onChangeText={setQuery}
+          style={styles.searchInput}
+        />
+        {query.length > 0 && (
+          <TouchableOpacity onPress={() => setQuery("")}>
+            <Ionicons name="close-circle" size={18} color="#94a3b8" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Kategori filtreleri */}
+      <FlatList
+        data={CATEGORIES}
+        horizontal
+        keyExtractor={(i) => i}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        style={{ marginBottom: 8 }}
+        renderItem={({ item }) => {
+          const active = item === activeCat;
+          return (
+            <TouchableOpacity
+              onPress={() => setActiveCat(item)}
+              style={[styles.catPill, active && styles.catPillActive]}
+            >
+              <Text style={[styles.catText, active && styles.catTextActive]}>{item}</Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      {/* İlan listesi */}
+      <FlatList
+        data={data}
+        keyExtractor={(it) => it.id}
+        renderItem={renderJob}
+        contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+        }
+        ListEmptyComponent={
+          <View style={{ alignItems: "center", marginTop: 48 }}>
+            <Ionicons name="search-outline" size={28} color="#64748b" />
+            <Text style={{ color: "#94a3b8", marginTop: 8 }}>Sonuç bulunamadı</Text>
+          </View>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0f172a" },
-  header: { backgroundColor: "#0f172a" },
-  section: { padding: 12 },
-  gap8: { height: 8 },
-  row: { flexDirection: "row", alignItems: "center" },
-  rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  chips: { flexDirection: "row", flexWrap: "wrap" as const, gap: 8 },
-  chip: { marginRight: 0 },
-  label: { color: "white", marginRight: 8 },
-  list: { padding: 12 },
-  card: { backgroundColor: "#111827" },
+  screen: { flex: 1, backgroundColor: "#0f172a" },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 22,
+    paddingBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  hi: { color: "#e5e7eb", fontSize: 20, fontWeight: "600" },
+  subtitle: { color: "#9ca3af", marginTop: 2 },
+  profileBtn: {
+    padding: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+
+  searchWrap: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: "#111827",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: "white",
+    paddingVertical: 4,
+  },
+
+  catPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#0b1220",
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#1f2937",
+  },
+  catPillActive: {
+    backgroundColor: "#1d4ed8",
+    borderColor: "#1d4ed8",
+  },
+  catText: { color: "#9ca3af", fontSize: 13 },
+  catTextActive: { color: "white", fontWeight: "600" },
+
+  card: {
+    backgroundColor: "#0b1220",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#1f2937",
+  },
+  cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 12 },
+  logoWrap: {
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: "#111827", alignItems: "center", justifyContent: "center", overflow: "hidden",
+  },
+  logo: { width: 40, height: 40 },
+
+  jobTitle: { color: "#e5e7eb", fontSize: 16, fontWeight: "700" },
+  company: { color: "#93a1b2", fontSize: 13, marginTop: 2 },
+
+  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6, marginBottom: 8 },
+  metaPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#0f172a",
+    borderColor: "#1f2937",
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  metaText: { color: "#cbd5e1", fontSize: 12 },
+
+  desc: { color: "#a3a3a3", marginTop: 2, lineHeight: 18 },
+
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
+  tag: {
+    backgroundColor: "rgba(59,130,246,0.12)",
+    borderColor: "rgba(59,130,246,0.3)",
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  tagText: { color: "#93c5fd", fontSize: 12 },
 });
