@@ -1,3 +1,4 @@
+// app/signup.tsx
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -13,9 +14,8 @@ export default function SignupScreen() {
 
   const handleSignup = () => {
     if (!canSubmit) return;
-    // Demo: direkt oturum açılmış kabul ediyoruz
     setSession(true);
-    router.replace("/"); // üye olunca ana sayfaya
+    router.replace("/"); // üye olunca home
   };
 
   return (
@@ -61,30 +61,25 @@ export default function SignupScreen() {
         <Text style={s.primaryText}>Üye Ol</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.back()}>
-        <Text style={s.backText}>Zaten hesabın var mı? Giriş yap</Text>
+      {/* 👇 İSTEDİĞİN BUTON */}
+      <TouchableOpacity onPress={() => router.replace("/login")} style={s.linkWrap}>
+        <Text style={s.linkText}>Zaten hesabın var mı? <Text style={s.linkStrong}>Giriş yap</Text></Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: {
-    flex: 1, backgroundColor: "#0f172a", padding: 20, justifyContent: "center",
-  },
-  title: {
-    color: "white", fontSize: 24, fontWeight: "700", marginBottom: 24, textAlign: "center",
-  },
+  container: { flex: 1, backgroundColor: "#0f172a", padding: 20, justifyContent: "center" },
+  title: { color: "white", fontSize: 24, fontWeight: "700", marginBottom: 24, textAlign: "center" },
   label: { color: "#cbd5e1", marginBottom: 6, marginTop: 8 },
   input: {
     backgroundColor: "#111827", color: "white", borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: "#1f2937",
-    marginBottom: 12,
+    paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: "#1f2937", marginBottom: 12,
   },
-  primaryBtn: {
-    backgroundColor: "#22c55e", paddingVertical: 14, borderRadius: 12, alignItems: "center",
-    marginTop: 8,
-  },
+  primaryBtn: { backgroundColor: "#22c55e", paddingVertical: 14, borderRadius: 12, alignItems: "center", marginTop: 8 },
   primaryText: { color: "white", fontWeight: "700", fontSize: 16 },
-  backText: { color: "#93c5fd", textAlign: "center", marginTop: 14 },
+  linkWrap: { marginTop: 16, alignItems: "center" },
+  linkText: { color: "#9ca3af" },
+  linkStrong: { color: "#93c5fd", fontWeight: "700" },
 });
