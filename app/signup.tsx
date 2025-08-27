@@ -15,7 +15,7 @@ export default function SignupScreen() {
   const handleSignup = () => {
     if (!canSubmit) return;
     setSession(true);
-    router.replace("/"); // üye olunca home
+    router.replace("/"); 
   };
 
   return (
