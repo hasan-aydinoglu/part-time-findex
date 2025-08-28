@@ -1,3 +1,4 @@
+// app/index.tsx
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -11,74 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-type Job = {
-  id: string;
-  title: string;
-  company: string;
-  logo?: string;        
-  location: string;
-  type: "Part-time" | "Remote" | "Hybrid" | "On-site";
-  salary?: string;
-  postedAt: string;     
-  tags: string[];
-  desc: string;
-};
-
-const MOCK_JOBS: Job[] = [
-  {
-    id: "1",
-    title: "Barista",
-    company: "Moonbeam Coffee",
-    logo:
-      "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=256&q=80&auto=format&fit=crop",
-    location: "Kadıköy, İstanbul",
-    type: "On-site",
-    salary: "₺220 - ₺260 /saat",
-    postedAt: "2s önce",
-    tags: ["Hafta sonu", "Öğrenci", "Esnek"],
-    desc: "Yoğun saatlerde baristalık, kasa ve temel hazırlık işleri.",
-  },
-  {
-    id: "2",
-    title: "Kurye (E-Scooter)",
-    company: "HızlıGetir",
-    logo:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=256&q=80&auto=format&fit=crop",
-    location: "Üsküdar, İstanbul",
-    type: "Hybrid",
-    salary: "₺350 - ₺500 /gün",
-    postedAt: "Dün",
-    tags: ["Ehliyet Yok", "Gündüz", "Prim"],
-    desc: "Kısa mesafe e-scooter ile teslimatlar. Ekipman sağlanır.",
-  },
-  {
-    id: "3",
-    title: "Sosyal Medya Asistanı",
-    company: "Nova Digital",
-    logo:
-      "https://images.unsplash.com/photo-1542744173-05336fcc7ad4?w=256&q=80&auto=format&fit=crop",
-    location: "Remote",
-    type: "Remote",
-    salary: "₺200 - ₺240 /saat",
-    postedAt: "3g önce",
-    tags: ["Evden", "Video", "Canva"],
-    desc: "Reels/TikTok kurguları, basit görsel hazırlama, metin yazımı.",
-  },
-  {
-    id: "4",
-    title: "Kasiyer (Akşam)",
-    company: "Mini Market",
-    logo:
-      "https://images.unsplash.com/photo-1556745753-b2904692b3cd?w=256&q=80&auto=format&fit=crop",
-    location: "Beşiktaş, İstanbul",
-    type: "On-site",
-    salary: "₺230 /saat",
-    postedAt: "1g önce",
-    tags: ["Akşam", "Hafta içi", "Öğrenci"],
-    desc: "Kasada müşteri karşılaması, reyon düzeni ve stok takibi.",
-  },
-];
+import { JOBS } from "./lib/jobs";
 
 const CATEGORIES = ["Hepsi", "On-site", "Remote", "Hybrid", "Part-time"];
 
@@ -90,8 +24,8 @@ export default function HomeScreen() {
 
   const data = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return MOCK_JOBS.filter((j) => {
-      const byCat = activeCat === "Hepsi" ? true : j.type === (activeCat as Job["type"]);
+    return JOBS.filter((j) => {
+      const byCat = activeCat === "Hepsi" ? true : j.type === (activeCat as any);
       const byQuery =
         !q ||
         j.title.toLowerCase().includes(q) ||
@@ -104,17 +38,15 @@ export default function HomeScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    // burada API yenilemesi yapılabilir
+    // Burada API'den veriyi yenileyebilirsin
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const renderJob = ({ item }: { item: Job }) => (
+  const renderJob = ({ item }: any) => (
     <TouchableOpacity
       activeOpacity={0.9}
       style={styles.card}
-      onPress={() => {
-        // İleride detay sayfasına gidebilirsin: router.push(`/job/${item.id}`)
-      }}
+      onPress={() => router.push(`/job/${item.id}`)}
     >
       <View style={styles.cardHeader}>
         <View style={styles.logoWrap}>
@@ -156,7 +88,7 @@ export default function HomeScreen() {
       </Text>
 
       <View style={styles.tagRow}>
-        {item.tags.map((t) => (
+        {item.tags.map((t: string) => (
           <View key={t} style={styles.tag}>
             <Text style={styles.tagText}>{t}</Text>
           </View>
@@ -167,21 +99,18 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      {/* Üst Başlık + Profil kısayolu */}
+      {/* Üst Başlık + Profil */}
       <View style={styles.header}>
         <View>
           <Text style={styles.hi}>Merhaba 👋</Text>
-          <Text style={styles.subtitle}>Bugün senin için {MOCK_JOBS.length} ilan bulduk</Text>
+          <Text style={styles.subtitle}>Bugün senin için {JOBS.length} ilan bulduk</Text>
         </View>
-        <TouchableOpacity
-          style={styles.profileBtn}
-          onPress={() => router.push("/profile")}
-        >
+        <TouchableOpacity style={styles.profileBtn} onPress={() => router.push("/profile")}>
           <Ionicons name="person-circle-outline" size={28} color="#e5e7eb" />
         </TouchableOpacity>
       </View>
 
-      {/* Arama kutusu */}
+      {/* Arama */}
       <View style={styles.searchWrap}>
         <Ionicons name="search" size={18} color="#94a3b8" />
         <TextInput
@@ -198,7 +127,7 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Kategori filtreleri */}
+      {/* Kategoriler */}
       <FlatList
         data={CATEGORIES}
         horizontal
@@ -219,7 +148,7 @@ export default function HomeScreen() {
         }}
       />
 
-      {/* İlan listesi */}
+      {/* İlanlar */}
       <FlatList
         data={data}
         keyExtractor={(it) => it.id}
@@ -241,6 +170,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#0f172a" },
+
   header: {
     paddingHorizontal: 16,
     paddingTop: 22,
